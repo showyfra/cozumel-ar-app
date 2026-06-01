@@ -8,69 +8,160 @@
     <style>
         body { 
             margin: 0; padding: 0; background-color: #1a1a1a; 
-            overflow: hidden; font-family: sans-serif; 
+            overflow-x: hidden; font-family: sans-serif; 
         }
         
-        /* Contenedores para cambiar de pantalla */
         #pantalla-ar { width: 100vw; height: 100vh; display: block; }
-        #pantalla-mapa { width: 100vw; height: 100vh; display: none; background-color: #f0f0f0; }
+        
+        /* Ajustamos el fondo del mapa a un color claro y permitimos scroll */
+        #pantalla-mapa { 
+            width: 100vw; min-height: 100vh; display: none; 
+            background-color: #f8f9fa; padding-bottom: 40px;
+        }
         
         model-viewer { width: 100%; height: 100%; }
         
-        /* Estilos de botones */
         .btn-principal {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
             padding: 15px 30px; background-color: #007BFF; color: white;
             border: none; border-radius: 25px; font-size: 16px; z-index: 10; cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
         
         .btn-volver {
-            position: absolute; top: 20px; left: 20px;
-            padding: 10px 20px; background-color: #dc3545; color: white;
-            border: none; border-radius: 15px; font-size: 14px; z-index: 10; cursor: pointer;
+            margin: 20px; padding: 10px 20px; background-color: #dc3545; color: white;
+            border: none; border-radius: 15px; font-size: 14px; cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        .btn-camara {
-            position: absolute; bottom: 90px; right: 20px; 
-            padding: 12px; border-radius: 15px; background-color: white; 
-            color: black; border: none; font-weight: bold; cursor: pointer;
+        /* --- ESTILOS DE LOS FILTROS Y LA LISTA --- */
+        .contenedor-filtros {
+            display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; 
+            padding: 0 15px; margin-bottom: 20px;
+        }
+
+        .btn-filtro {
+            padding: 8px 12px; border-radius: 20px; border: 1px solid #007BFF; 
+            background: white; color: #007BFF; cursor: pointer; font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-filtro.activo {
+            background: #007BFF; color: white;
+        }
+
+        #contenedor-lista {
+            margin: 0 20px; background: white; border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow: hidden;
+        }
+
+        .item-punto {
+            padding: 15px; border-bottom: 1px solid #eee; display: flex; 
+            justify-content: space-between; align-items: center;
+        }
+        .item-punto:last-child { border-bottom: none; }
+        
+        .item-info h4 { margin: 0 0 5px 0; color: #333; font-size: 16px; }
+        .item-info span { font-size: 12px; color: #666; background: #e9ecef; padding: 3px 8px; border-radius: 10px; }
+        
+        .btn-ruta {
+            background: #28a745; color: white; border: none; padding: 8px 12px;
+            border-radius: 8px; font-size: 12px; cursor: pointer;
         }
     </style>
 </head>
 <body>
 
     <div id="pantalla-ar">
-        <button class="btn-principal" onclick="mostrarMapa()">ENCUENTRAME</button>
-        
-        <model-viewer 
-            src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" 
-            ar ar-modes="webxr scene-viewer quick-look" 
-            camera-controls auto-rotate>
-            
-            <button slot="ar-button" class="btn-camara">
-                📷 Ver en mi espacio
-            </button>
-        </model-viewer>
+        <button class="btn-principal" onclick="mostrarMapa()">Ver Mapa de Interés</button>
+        <model-viewer src="https://modelviewer.dev/shared-assets/models/ToyCar.glb" ar ar-modes="webxr scene-viewer quick-look" camera-controls auto-rotate></model-viewer>
     </div>
 
     <div id="pantalla-mapa">
-        <button class="btn-volver" onclick="mostrarAR()">⬅ Volver al Tren AR</button>
+        <button class="btn-volver" onclick="mostrarAR()">⬅ Volver al AR</button>
         
-        <div style="padding: 80px 20px; text-align: center; color: black;">
-            <h2>🗺️ Mapa interactivo de Cozumel</h2>
-            <p>Aquí integraremos los 40 puntos de interés y los filtros por categoría.</p>
-        </div>
+        <h2 style="text-align: center; color: #333; margin-top: 0;">Puntos de Interés</h2>
+        
+        <div class="contenedor-filtros" id="botones-filtros">
+            </div>
+
+        <div id="contenedor-lista">
+            </div>
     </div>
 
     <script>
+        // 1. BASE DE DATOS SIMULADA (Lo que reemplazaremos con el Excel)
+        const puntosDeInteres = [
+            { id: 1, nombre: "Hospital San Miguel", categoria: "Emergencias" },
+            { id: 2, nombre: "Clínica Cozumel", categoria: "Emergencias" },
+            { id: 3, nombre: "Hotel El Paraíso", categoria: "Hospedajes" },
+            { id: 4, nombre: "Resort Gran Arrecife", categoria: "Hospedajes" },
+            { id: 5, nombre: "Mariscos El Pescador", categoria: "Gastronomía" },
+            { id: 6, nombre: "Tacos Los Compadres", categoria: "Gastronomía" },
+            { id: 7, nombre: "Café Internet Central", categoria: "Servicios y conectividad" },
+            { id: 8, nombre: "Renta de Motos Mía", categoria: "Servicios y conectividad" }
+        ];
+
+        const categorias = ["Todos", "Emergencias", "Hospedajes", "Gastronomía", "Servicios y conectividad"];
+
+        // 2. NAVEGACIÓN ENTRE PANTALLAS
         function mostrarMapa() {
             document.getElementById('pantalla-ar').style.display = 'none';
             document.getElementById('pantalla-mapa').style.display = 'block';
+            renderizarFiltros();
+            filtrarPuntos("Todos"); // Mostrar todos por defecto al abrir
         }
 
         function mostrarAR() {
             document.getElementById('pantalla-mapa').style.display = 'none';
             document.getElementById('pantalla-ar').style.display = 'block';
+        }
+
+        // 3. GENERAR LOS BOTONES DE FILTRO
+        function renderizarFiltros() {
+            const contenedor = document.getElementById('botones-filtros');
+            contenedor.innerHTML = ''; // Limpiar antes de dibujar
+
+            categorias.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = cat === "Todos" ? 'btn-filtro activo' : 'btn-filtro';
+                btn.textContent = cat;
+                btn.onclick = () => {
+                    // Quitar la clase 'activo' de todos los botones y ponérsela al presionado
+                    document.querySelectorAll('.btn-filtro').forEach(b => b.classList.remove('activo'));
+                    btn.classList.add('activo');
+                    filtrarPuntos(cat);
+                };
+                contenedor.appendChild(btn);
+            });
+        }
+
+        // 4. FILTRAR Y DIBUJAR LA LISTA DE LUGARES
+        function filtrarPuntos(categoriaSeleccionada) {
+            const contenedorLista = document.getElementById('contenedor-lista');
+            contenedorLista.innerHTML = ''; 
+
+            const puntosFiltrados = categoriaSeleccionada === "Todos" 
+                ? puntosDeInteres 
+                : puntosDeInteres.filter(punto => punto.categoria === categoriaSeleccionada);
+
+            if(puntosFiltrados.length === 0) {
+                contenedorLista.innerHTML = '<div style="padding: 20px; text-align: center; color: gray;">No hay puntos en esta categoría.</div>';
+                return;
+            }
+
+            puntosFiltrados.forEach(punto => {
+                const div = document.createElement('div');
+                div.className = 'item-punto';
+                div.innerHTML = `
+                    <div class="item-info">
+                        <h4>${punto.nombre}</h4>
+                        <span>${punto.categoria}</span>
+                    </div>
+                    <button class="btn-ruta">Cómo llegar</button>
+                `;
+                contenedorLista.appendChild(div);
+            });
         }
     </script>
 </body>
