@@ -13,7 +13,6 @@
         
         #pantalla-ar { width: 100vw; height: 100vh; display: block; }
         
-        /* Ajustamos el fondo del mapa a un color claro y permitimos scroll */
         #pantalla-mapa { 
             width: 100vw; min-height: 100vh; display: none; 
             background-color: #f8f9fa; padding-bottom: 40px;
@@ -34,7 +33,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        /* --- ESTILOS DE LOS FILTROS Y LA LISTA --- */
         .contenedor-filtros {
             display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; 
             padding: 0 15px; margin-bottom: 20px;
@@ -68,6 +66,25 @@
             background: #28a745; color: white; border: none; padding: 8px 12px;
             border-radius: 8px; font-size: 12px; cursor: pointer;
         }
+
+        /* --- NUEVO: ESTILOS DEL POP-UP Y BOTÓN DEBUG --- */
+        #popup-recompensa {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.8); display: none; 
+            justify-content: center; align-items: center; z-index: 9999;
+        }
+        .tarjeta-recompensa {
+            background: white; width: 85%; max-width: 350px; padding: 25px; 
+            border-radius: 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            animation: saltar 0.5s ease-out;
+        }
+        @keyframes saltar { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        
+        .tarjeta-recompensa h3 { color: #ff9800; margin-top: 0; font-size: 22px; }
+        .codigo-promo { background: #f8f9fa; border: 2px dashed #007BFF; padding: 15px; font-size: 24px; font-weight: bold; letter-spacing: 2px; margin: 15px 0; color: #007BFF; }
+        .btn-cerrar-popup { background: #333; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-size: 14px; width: 100%; }
+
+        .btn-debug { position: absolute; top: 20px; right: 20px; background: orange; padding: 10px; font-size: 12px; z-index: 1000; border-radius: 10px; border: none; cursor: pointer; color: white; font-weight: bold;}
     </style>
 </head>
 <body>
@@ -79,27 +96,36 @@
 
     <div id="pantalla-mapa">
         <button class="btn-volver" onclick="mostrarAR()">⬅ Volver al AR</button>
+        <button class="btn-debug" onclick="simularLlegada()">Simular GPS</button>
         
         <h2 style="text-align: center; color: #333; margin-top: 0;">Puntos de Interés</h2>
         
-        <div class="contenedor-filtros" id="botones-filtros">
-            </div>
+        <div class="contenedor-filtros" id="botones-filtros"></div>
 
-        <div id="contenedor-lista">
-            </div>
+        <div id="contenedor-lista"></div>
+    </div>
+
+    <div id="popup-recompensa">
+        <div class="tarjeta-recompensa">
+            <h3>¡Felicidades! 🎉</h3>
+            <p>Estás muy cerca de <b id="nombre-lugar-popup">un punto de interés</b>.</p>
+            <p>Muestra este código en el establecimiento para hacer válida tu promoción:</p>
+            <div class="codigo-promo" id="codigo-texto">COZUMEL-AR</div>
+            <button class="btn-cerrar-popup" onclick="cerrarPopup()">Entendido</button>
+        </div>
     </div>
 
     <script>
-        // 1. BASE DE DATOS SIMULADA (Lo que reemplazaremos con el Excel)
+        // 1. BASE DE DATOS (Actualizada con Latitud, Longitud y Códigos Promocionales)
         const puntosDeInteres = [
-            { id: 1, nombre: "Hospital San Miguel", categoria: "Emergencias" },
-            { id: 2, nombre: "Clínica Cozumel", categoria: "Emergencias" },
-            { id: 3, nombre: "Hotel El Paraíso", categoria: "Hospedajes" },
-            { id: 4, nombre: "Resort Gran Arrecife", categoria: "Hospedajes" },
-            { id: 5, nombre: "Mariscos El Pescador", categoria: "Gastronomía" },
-            { id: 6, nombre: "Tacos Los Compadres", categoria: "Gastronomía" },
-            { id: 7, nombre: "Café Internet Central", categoria: "Servicios y conectividad" },
-            { id: 8, nombre: "Renta de Motos Mía", categoria: "Servicios y conectividad" }
+            { id: 1, nombre: "Hospital San Miguel", categoria: "Emergencias", lat: 20.5100, lon: -86.9500, codigo: "EMERG-01" },
+            { id: 2, nombre: "Clínica Cozumel", categoria: "Emergencias", lat: 20.5080, lon: -86.9480, codigo: "CLIN-02" },
+            { id: 3, nombre: "Hotel El Paraíso", categoria: "Hospedajes", lat: 20.4900, lon: -86.9600, codigo: "HOSP-50" },
+            { id: 4, nombre: "Resort Gran Arrecife", categoria: "Hospedajes", lat: 20.4850, lon: -86.9650, codigo: "HOSP-99" },
+            { id: 5, nombre: "Mariscos El Pescador", categoria: "Gastronomía", lat: 20.5050, lon: -86.9450, codigo: "TACO-FREE" },
+            { id: 6, nombre: "Tacos Los Compadres", categoria: "Gastronomía", lat: 20.5020, lon: -86.9420, codigo: "BEBIDA-2X1" },
+            { id: 7, nombre: "Café Internet Central", categoria: "Servicios y conectividad", lat: 20.5120, lon: -86.9400, codigo: "WIFI-1HR" },
+            { id: 8, nombre: "Renta de Motos Mía", categoria: "Servicios y conectividad", lat: 20.5000, lon: -86.9550, codigo: "MOTO-20" }
         ];
 
         const categorias = ["Todos", "Emergencias", "Hospedajes", "Gastronomía", "Servicios y conectividad"];
@@ -109,7 +135,8 @@
             document.getElementById('pantalla-ar').style.display = 'none';
             document.getElementById('pantalla-mapa').style.display = 'block';
             renderizarFiltros();
-            filtrarPuntos("Todos"); // Mostrar todos por defecto al abrir
+            filtrarPuntos("Todos");
+            iniciarGPS(); // NUEVO: Enciende el lector GPS al abrir el mapa
         }
 
         function mostrarAR() {
@@ -117,17 +144,20 @@
             document.getElementById('pantalla-ar').style.display = 'block';
         }
 
+        function cerrarPopup() { 
+            document.getElementById('popup-recompensa').style.display = 'none'; 
+        }
+
         // 3. GENERAR LOS BOTONES DE FILTRO
         function renderizarFiltros() {
             const contenedor = document.getElementById('botones-filtros');
-            contenedor.innerHTML = ''; // Limpiar antes de dibujar
+            contenedor.innerHTML = ''; 
 
             categorias.forEach(cat => {
                 const btn = document.createElement('button');
                 btn.className = cat === "Todos" ? 'btn-filtro activo' : 'btn-filtro';
                 btn.textContent = cat;
                 btn.onclick = () => {
-                    // Quitar la clase 'activo' de todos los botones y ponérsela al presionado
                     document.querySelectorAll('.btn-filtro').forEach(b => b.classList.remove('activo'));
                     btn.classList.add('activo');
                     filtrarPuntos(cat);
@@ -153,15 +183,73 @@
             puntosFiltrados.forEach(punto => {
                 const div = document.createElement('div');
                 div.className = 'item-punto';
+                // NUEVO: El botón "Cómo llegar" ahora llama a la función de Google Maps
                 div.innerHTML = `
                     <div class="item-info">
                         <h4>${punto.nombre}</h4>
                         <span>${punto.categoria}</span>
                     </div>
-                    <button class="btn-ruta">Cómo llegar</button>
+                    <button class="btn-ruta" onclick="abrirRuta(${punto.lat}, ${punto.lon})">Cómo llegar</button>
                 `;
                 contenedorLista.appendChild(div);
             });
+        }
+
+        // NUEVO: Abrir Google Maps con la ubicación exacta
+        function abrirRuta(lat, lon) { 
+            window.open(`https://maps.google.com/?q=${lat},${lon}`, '_blank'); 
+        }
+
+        // --- NUEVO: SISTEMA DE GEOLOCALIZACIÓN Y MATEMÁTICAS ---
+        let popupMostrado = false;
+
+        function iniciarGPS() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.watchPosition(
+                    (posicion) => {
+                        const miLat = posicion.coords.latitude;
+                        const miLon = posicion.coords.longitude;
+                        revisarCercania(miLat, miLon);
+                    },
+                    (error) => { console.log("Error de GPS:", error); },
+                    { enableHighAccuracy: true, maximumAge: 0 }
+                );
+            }
+        }
+
+        // Fórmula matemática (Haversine) para medir distancias curvas en la tierra
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Radio de la tierra en metros
+            const phi1 = lat1 * Math.PI/180;
+            const phi2 = lat2 * Math.PI/180;
+            const deltaPhi = (lat2-lat1) * Math.PI/180;
+            const deltaLambda = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) + Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c; 
+        }
+
+        function revisarCercania(miLat, miLon) {
+            if(popupMostrado) return; // Evitar que el pop-up se lance en bucle
+            
+            for(let punto of puntosDeInteres) {
+                const distancia = calcularDistancia(miLat, miLon, punto.lat, punto.lon);
+                if(distancia <= 50) { // Radio de 50 metros
+                    lanzarRecompensa(punto.nombre, punto.codigo);
+                    popupMostrado = true;
+                    break;
+                }
+            }
+        }
+
+        function lanzarRecompensa(nombreLugar, codigo) {
+            document.getElementById('nombre-lugar-popup').textContent = nombreLugar;
+            document.getElementById('codigo-texto').textContent = codigo;
+            document.getElementById('popup-recompensa').style.display = 'flex';
+        }
+
+        function simularLlegada() { 
+            lanzarRecompensa("Restaurante de Prueba", "TEST-123"); 
         }
     </script>
 </body>
