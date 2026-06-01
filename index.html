@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Hotel Cozumel</title>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: #1a1a1a; 
+            overflow: hidden; 
+        }
+        model-viewer { 
+            width: 100vw; 
+            height: 100vh; 
+        }
+        .boton-flotante {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-family: sans-serif;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="boton-flotante">Ver Mapa de Interés</button>
+
+    <model-viewer 
+        src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" 
+        ar 
+        ar-modes="webxr scene-viewer quick-look" 
+        camera-controls 
+        auto-rotate>
+    </model-viewer>
+
+</body>
+</html>
