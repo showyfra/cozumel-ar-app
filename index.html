@@ -7,42 +7,71 @@
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     <style>
         body { 
-            margin: 0; 
-            padding: 0; 
-            background-color: #1a1a1a; 
-            overflow: hidden; 
+            margin: 0; padding: 0; background-color: #1a1a1a; 
+            overflow: hidden; font-family: sans-serif; 
         }
-        model-viewer { 
-            width: 100vw; 
-            height: 100vh; 
+        
+        /* Contenedores para cambiar de pantalla */
+        #pantalla-ar { width: 100vw; height: 100vh; display: block; }
+        #pantalla-mapa { width: 100vw; height: 100vh; display: none; background-color: #f0f0f0; }
+        
+        model-viewer { width: 100%; height: 100%; }
+        
+        /* Estilos de botones */
+        .btn-principal {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            padding: 15px 30px; background-color: #007BFF; color: white;
+            border: none; border-radius: 25px; font-size: 16px; z-index: 10; cursor: pointer;
         }
-        .boton-flotante {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 15px 30px;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            font-size: 16px;
-            font-family: sans-serif;
-            z-index: 10;
+        
+        .btn-volver {
+            position: absolute; top: 20px; left: 20px;
+            padding: 10px 20px; background-color: #dc3545; color: white;
+            border: none; border-radius: 15px; font-size: 14px; z-index: 10; cursor: pointer;
+        }
+
+        .btn-camara {
+            position: absolute; bottom: 90px; right: 20px; 
+            padding: 12px; border-radius: 15px; background-color: white; 
+            color: black; border: none; font-weight: bold; cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <button class="boton-flotante">Ver Mapa de Interés</button>
+    <div id="pantalla-ar">
+        <button class="btn-principal" onclick="mostrarMapa()">Ver Mapa de Interés</button>
+        
+        <model-viewer 
+            src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" 
+            ar ar-modes="webxr scene-viewer quick-look" 
+            camera-controls auto-rotate>
+            
+            <button slot="ar-button" class="btn-camara">
+                📷 Ver en mi espacio
+            </button>
+        </model-viewer>
+    </div>
 
-    <model-viewer 
-        src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" 
-        ar 
-        ar-modes="webxr scene-viewer quick-look" 
-        camera-controls 
-        auto-rotate>
-    </model-viewer>
+    <div id="pantalla-mapa">
+        <button class="btn-volver" onclick="mostrarAR()">⬅ Volver al Tren AR</button>
+        
+        <div style="padding: 80px 20px; text-align: center; color: black;">
+            <h2>🗺️ Mapa interactivo de Cozumel</h2>
+            <p>Aquí integraremos los 40 puntos de interés y los filtros por categoría.</p>
+        </div>
+    </div>
 
+    <script>
+        function mostrarMapa() {
+            document.getElementById('pantalla-ar').style.display = 'none';
+            document.getElementById('pantalla-mapa').style.display = 'block';
+        }
+
+        function mostrarAR() {
+            document.getElementById('pantalla-mapa').style.display = 'none';
+            document.getElementById('pantalla-ar').style.display = 'block';
+        }
+    </script>
 </body>
 </html>
